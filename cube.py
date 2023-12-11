@@ -14,34 +14,33 @@ vertices = (
     (-1, 1, 1)
 )
 
-edges = (
-    (0, 1),
-    (0, 3),
-    (0, 4),
-    (2, 1),
-    (2, 3),
-    (2, 7),
-    (6, 3),
-    (6, 4),
-    (6, 7),
-    (5, 1),
-    (5, 4),
-    (5, 7)
+faces = (
+    (0, 1, 2, 3),
+    (3, 2, 7, 6),
+    (6, 7, 5, 4),
+    (4, 5, 1, 0),
+    (1, 5, 7, 2),
+    (4, 0, 3, 6)
 )
 
 colors = (
-    (1, 0, 1), 
+    (1, 0, 1),
 )
 
-
-
 def Cube(position):
-    glBegin(GL_LINES)
-    for edge in edges:
-        for vertex in edge:
-            glColor3fv(colors[0])
+    glBegin(GL_QUADS)
+    for face in faces:
+        glColor3fv(colors[0])
+        for vertex in face:
             glVertex3fv([v + p for v, p in zip(vertices[vertex], position)])
     glEnd()
+
+def save_to_obj(filename, vertices, faces):
+    with open(filename, 'w') as f:
+        for vertex in vertices:
+            f.write(f"v {' '.join(map(str, vertex))}\n")
+        for face in faces:
+            f.write(f"f {' '.join(map(lambda x: str(x + 1), face))}\n")
 
 def main():
     pygame.init()
@@ -50,10 +49,10 @@ def main():
 
     gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
 
-    glTranslatef(-10.0, 0.0, -25)
+    glTranslatef(-10.0, 0.0, -30)
 
-    glEnable(GL_DEPTH_TEST)  # Enable depth testing
-    glClearDepth(1.0)  # Set the clear value for the depth buffer
+    glEnable(GL_DEPTH_TEST) 
+    glClearDepth(1.0)
 
     while True:
         for event in pygame.event.get():
@@ -80,7 +79,6 @@ def main():
         Cube((6, -2, 0))
         Cube((6, -6, 0))
         Cube((8, -6, 0))
-        #Cube((8, -4, 0))
         Cube((8, -2, 0))
         Cube((8, 0, 0))
         Cube((8, 2, 0))
@@ -96,7 +94,6 @@ def main():
         Cube((12, -2, 0))
         Cube((14, 6, 0))
         Cube((14, 4, 0))
-        #Cube((10, 2, 0))
         Cube((14, 0, 0))
         Cube((14, -2, 0))
         Cube((14, -6, 0))
@@ -112,9 +109,8 @@ def main():
         Cube((20, -2, 0))
         Cube((20, -4, 0))
 
-
-
         pygame.display.flip()
         pygame.time.wait(10)
+        save_to_obj("output.obj", vertices, faces)
 
 main()
