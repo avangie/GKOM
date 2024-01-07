@@ -17,6 +17,14 @@ vertex_shader_bullet='''
         // Transform position using origin, basis, and scale_factor
         v_vert = in_origin + in_basis * (in_position * scale_factor);
         
+        // Rotate the position 180 degrees around the x-axis to turn it upside down
+        mat3 flip_matrix = mat3(
+            -1.0, 0.0, 0.0,
+            0.0, -1.0, 0.0,
+            0.0, 0.0, -1.0
+        );
+        v_vert = flip_matrix * v_vert;
+
         // Transform normal using basis
         v_norm = in_basis * in_normal;
         

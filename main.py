@@ -9,6 +9,8 @@ from pyrr import Matrix44, Quaternion, matrix44
 import moderngl
 from _main import SetupScene  
 from shaders import *
+from particle_emitter import Particles
+
 
 def grid(size, steps):
     u = np.repeat(np.linspace(-size, size, steps), 2)
@@ -27,7 +29,6 @@ class Scene(SetupScene):
         super().__init__(**kwargs)
         self.ship_position = np.array([0.0, 0.0, 0.0], dtype=np.float32)
         self.grid_size = 15  
-
         # Initialize SimpleGrid
         self.prog_grid = self.ctx.program(
             vertex_shader=vertex_shader_grid,
@@ -47,7 +48,7 @@ class Scene(SetupScene):
         self.mvp_ship = self.prog_ship['Mvp']
         self.light_ship = self.prog_ship['Light']
 
-        obj = self.load_scene('spaceship_v2.obj')
+        obj = self.load_scene('spaceship.obj')
         #self.rotate_ship(180.0, [0.0, 1.0, 0.0])
         self.vbo_ship = self.ctx.buffer(struct.pack(
             '15f',
@@ -90,23 +91,17 @@ class Scene(SetupScene):
         # Render SimpleGrid
         proj = Matrix44.perspective_projection(45.0, self.aspect_ratio, 0.1, 1000.0)
         lookat = Matrix44.look_at(
-            (0, 30.0, 30.0),
+            (0.0, 30.0, 30.0),
             (0.0, 0.0, 0.0),
             (0.0, 0.0, 1.0),
         )
         self.mvp_grid.write((proj * lookat).astype('f4'))
         self.vao_grid.render(moderngl.LINES)
 
-        rotation_angle = 45.0  # Change this to the desired rotation angle in degrees
-        rotation_axis = (0.0, 0.0, 1.0)  # Change this to the desired rotation axis (e.g., (1.0, 0.0, 0.0) for x-axis)
-
-        ship_rotation = Quaternion.from_eulers(rotation_angle, rotation_axis)
-        ship_model = Matrix44.from_translation(self.ship_position) * Matrix44.from_quaternion(ship_rotation)
-
         # Render Ship
         scale_factor = 0.1 
         self.prog_ship['scale_factor'].value = scale_factor
-        camera_pos = (10.0, 0, 20.0)
+        camera_pos = (20, 20, -20.0)
 
         ship_model = Matrix44.from_translation(self.ship_position).astype('f4')
         ship_mvp = (proj * lookat * ship_model).astype('f4')
@@ -114,6 +109,8 @@ class Scene(SetupScene):
 
         self.light_ship.value = camera_pos
         self.vao_ship.render()
+
+
 
 
 if __name__ == '__main__':
