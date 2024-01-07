@@ -3,7 +3,7 @@ from colorsys import hls_to_rgb as hls
 from random import uniform
 
 import numpy as np
-from pyrr import Matrix44
+from pyrr import Matrix44, Quaternion, matrix44
 
 
 import moderngl
@@ -47,7 +47,8 @@ class Scene(SetupScene):
         self.mvp_ship = self.prog_ship['Mvp']
         self.light_ship = self.prog_ship['Light']
 
-        obj = self.load_scene('bullet.obj')
+        obj = self.load_scene('spaceship_v2.obj')
+        #self.rotate_ship(180.0, [0.0, 1.0, 0.0])
         self.vbo_ship = self.ctx.buffer(struct.pack(
             '15f',
             *self.ship_color,
@@ -95,6 +96,12 @@ class Scene(SetupScene):
         )
         self.mvp_grid.write((proj * lookat).astype('f4'))
         self.vao_grid.render(moderngl.LINES)
+
+        rotation_angle = 45.0  # Change this to the desired rotation angle in degrees
+        rotation_axis = (0.0, 0.0, 1.0)  # Change this to the desired rotation axis (e.g., (1.0, 0.0, 0.0) for x-axis)
+
+        ship_rotation = Quaternion.from_eulers(rotation_angle, rotation_axis)
+        ship_model = Matrix44.from_translation(self.ship_position) * Matrix44.from_quaternion(ship_rotation)
 
         # Render Ship
         scale_factor = 0.1 
