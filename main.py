@@ -27,7 +27,7 @@ class Scene(SetupScene):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.ship_position = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+        self.ship_position = np.array([0.0, 13, 0.0], dtype=np.float32)
         self.grid_size = 15  
         # Initialize SimpleGrid
         self.prog_grid = self.ctx.program(
@@ -70,10 +70,12 @@ class Scene(SetupScene):
             step_size = 2 * self.grid_size / 10 
             if key == self.wnd.keys.UP:
                 print("UP PRESSED")
-                self.ship_position[1] -= step_size  # Move up
+                self.ship_position[2] += step_size  # Move up
             elif key == self.wnd.keys.DOWN:
                 print("DOWN PRESSED")
-                self.ship_position[1] += step_size  # Move down
+                if self.ship_position[2] > 0: 
+                    self.ship_position[2] -= step_size  # Move down
+                print('CANT GO LOWER')
             elif key == self.wnd.keys.LEFT:
                 print("LEFT PRESSED")
                 self.ship_position[0] += step_size  # Move left
