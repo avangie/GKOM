@@ -78,10 +78,14 @@ class Scene(SetupScene):
                 print('CANT GO LOWER')
             elif key == self.wnd.keys.LEFT:
                 print("LEFT PRESSED")
-                self.ship_position[0] += step_size  # Move left
+                print(self.ship_position)
+                if self.ship_position[0] < 12:
+                    self.ship_position[0] += step_size  # Move left
+                print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.RIGHT:
-                print("RIGHT PRESSED")
-                self.ship_position[0] -= step_size  # Move right
+                if self.ship_position[0] > -12:
+                    self.ship_position[0] -= step_size  # Move left
+                print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.SPACE:
                 print("BULLET SHOT")
 
