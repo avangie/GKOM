@@ -70,7 +70,9 @@ class Scene(SetupScene):
             step_size = 2 * self.grid_size / 10 
             if key == self.wnd.keys.UP:
                 print("UP PRESSED")
-                self.ship_position[2] += step_size  # Move up
+                if self.ship_position[2] < 9:
+                    self.ship_position[2] += step_size  # Move up
+                print('CANT GO HIGHER')
             elif key == self.wnd.keys.DOWN:
                 print("DOWN PRESSED")
                 if self.ship_position[2] > 0: 
