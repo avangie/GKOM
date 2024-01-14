@@ -207,9 +207,9 @@ class Scene(SetupScene):
 
         # Render Enemy
         for i in range(36):
-            scale_factor = 0.1
+            scale_factor = 0.12
             self.prog_enemy['scale_factor'].value = scale_factor
-            camera_pos = (20, 20, -20.0)
+            camera_pos = (0, 10, 20)
 
             enemy_model = Matrix44.from_translation(self.enemies_position_list[i]).astype('f4')
             enemy_mvp = (proj * lookat * enemy_model).astype('f4')
