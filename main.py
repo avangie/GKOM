@@ -304,9 +304,31 @@ class Scene(SetupScene):
             enemy_model = Matrix44.from_translation(self.enemies_position_list[i]).astype('f4')
             enemy_mvp = (proj * lookat * enemy_model).astype('f4')
             self.mvp_enemy.write(enemy_mvp.tobytes())
-            camera_pos = (20, 1, -20.0)
+            camera_pos = (0, 10, 20)
             self.light_enemy.value = camera_pos
             self.enemies_list[i].render()
+
+             # Check collision with the ship
+            ship_box = [self.ship_position[0] - 1, self.ship_position[0] + 1,
+                        self.ship_position[1] - 1, self.ship_position[1] + 1,
+                        self.ship_position[2] - 1, self.ship_position[2] + 1]
+
+            enemy_box = [self.enemies_position_list[i][0] - 1, self.enemies_position_list[i][0] + 1,
+                        self.enemies_position_list[i][1] - 1, self.enemies_position_list[i][1] + 1,
+                        self.enemies_position_list[i][2] - 1, self.enemies_position_list[i][2] + 1]
+
+            if check_collision(ship_box, enemy_box):
+                print("Game Over: Ship collided with an enemy!")
+
+def check_collision(box1, box2):
+# box: [min_x, max_x, min_y, max_y, min_z, max_z]
+    return not (box1[1] < box2[0] or
+                box1[0] > box2[1] or
+                box1[3] < box2[2] or
+                box1[2] > box2[3] or
+                box1[5] < box2[4] or
+                box1[4] > box2[5])
+
 
 if __name__ == '__main__':
     Scene.run()
