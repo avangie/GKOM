@@ -1,11 +1,8 @@
 import struct
 from colorsys import hls_to_rgb as hls
 from random import uniform
-
 import numpy as np
-from pyrr import Matrix44, Quaternion, matrix44
-
-
+from pyrr import Matrix44
 import moderngl
 from _main import SetupScene
 from shaders import *
@@ -34,7 +31,7 @@ class Scene(SetupScene):
                 self.enemies_position_list.append(np.array([i, -14, j], dtype=np.float32))
         self.grid_size = 15
         self.enemies_list = []
-        # Initialize SimpleGrid
+        # initialize SimpleGrid
         self.prog_grid = self.ctx.program(
             vertex_shader=vertex_shader_grid,
             fragment_shader=fragment_shader_grid
@@ -43,7 +40,7 @@ class Scene(SetupScene):
         self.vbo_grid = self.ctx.buffer(grid(self.grid_size, 10).astype('f4'))
         self.vao_grid = self.ctx.simple_vertex_array(self.prog_grid, self.vbo_grid, 'in_vert')
 
-        # Initialize Ship
+        # initialize ship
         self.ship_color = random_color()
         self.prog_ship = self.ctx.program(
             vertex_shader=vertex_shader_bullet,
@@ -54,7 +51,6 @@ class Scene(SetupScene):
         self.light_ship = self.prog_ship['Light']
 
         obj = self.load_scene('spaceship.obj')
-        #self.rotate_ship(180.0, [0.0, 1.0, 0.0])
         self.vbo_ship = self.ctx.buffer(struct.pack(
             '15f',
             *self.ship_color,
@@ -67,10 +63,10 @@ class Scene(SetupScene):
         vao_wrapper.buffer(self.vbo_ship, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
         self.vao_ship = vao_wrapper.instance(self.prog_ship)
 
-        # Initialize Enemy
+        # initialize enemies
         self.prog_enemy = self.ctx.program(
-            vertex_shader=vertex_shader_bullet,
-            fragment_shader=fragment_shader_bullet
+            vertex_shader=vertex_shader_enemy,
+            fragment_shader=fragment_shader_enemy
         )
 
         self.mvp_enemy = self.prog_enemy['Mvp']
@@ -79,7 +75,6 @@ class Scene(SetupScene):
         obj = self.load_scene('enemy.obj')
         for i in range(36):
             self.enemy_color = random_color()
-            #self.rotate_enemy(180.0, [0.0, 1.0, 0.0])
             self.vbo_enemy = self.ctx.buffer(struct.pack(
                 '15f',
                 *self.enemy_color,
@@ -91,7 +86,45 @@ class Scene(SetupScene):
             vao_wrapper = obj.root_nodes[0].mesh.vao
             vao_wrapper.buffer(self.vbo_enemy, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
             self.enemies_list.append(vao_wrapper.instance(self.prog_enemy))
+        
+        # initialize enemy movement variables
+        self.enemy_current_step = 0
+        self.enemy_time_since_last_step = 0
+        self.enemy_step_interval = 1.0
 
+    def update_enemy_positions(self, frame_time):
+        self.enemy_time_since_last_step += frame_time
+
+        if self.enemy_time_since_last_step >= self.enemy_step_interval:
+            self.enemy_time_since_last_step = 0
+
+            # one step up
+            if self.enemy_current_step == 0:
+                for i in range(36):
+                    self.enemies_position_list[i][2] += 2.0
+
+            # three steps to the right
+            elif 1 <= self.enemy_current_step <= 3:
+                for i in range(36):
+                    self.enemies_position_list[i][0] -= 2.0
+
+            # one step down
+            elif self.enemy_current_step == 4:
+                for i in range(36):
+                    self.enemies_position_list[i][2] -= 2.0
+
+            # three steps to the left 
+            elif 5 <= self.enemy_current_step <= 7:
+                for i in range(36):
+                    self.enemies_position_list[i][0] += 2.0
+            
+            # one step forward
+            elif self.enemy_current_step == 8:
+                for i in range(36):
+                    self.enemies_position_list[i][1] += 2.0
+
+            # reset the step count and check if it's time to switch
+            self.enemy_current_step = (self.enemy_current_step + 1) % 9
 
     def key_event(self, key, action, modifiers):
         """Handle key events."""
@@ -130,14 +163,14 @@ class Scene(SetupScene):
                 print("DOWN PRESSED")
                 print(self.ship_position)
                 if self.ship_position[1] > -12:
-                    self.ship_position[1] -= step_size  # Move left
+                    self.ship_position[1] -= step_size  # Move forward
                 else:
                     print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.X:
                 print("UP PRESSED")
                 print(self.ship_position)
                 if self.ship_position[1] < 12:
-                    self.ship_position[1] += step_size  # Move left
+                    self.ship_position[1] += step_size  # Move back
                 else:
                     print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.SPACE:
@@ -157,6 +190,8 @@ class Scene(SetupScene):
         )
         self.mvp_grid.write((proj * lookat).astype('f4'))
         self.vao_grid.render(moderngl.LINES)
+
+        self.update_enemy_positions(frame_time)
 
         # Render Ship
         scale_factor = 0.1
@@ -182,7 +217,6 @@ class Scene(SetupScene):
 
             self.light_enemy.value = camera_pos
             self.enemies_list[i].render()
-
 
 if __name__ == '__main__':
     Scene.run()
