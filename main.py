@@ -133,27 +133,27 @@ class Scene(SetupScene):
 
             # one step up
             if self.enemy_current_step == 0:
-                for i in range(36):
+                for i in range(len(self.enemies_list)):
                     self.enemies_position_list[i][2] += 2.0
 
             # three steps to the right
             elif 1 <= self.enemy_current_step <= 3:
-                for i in range(36):
+                for i in range(len(self.enemies_list)):
                     self.enemies_position_list[i][0] -= 2.0
 
             # one step down
             elif self.enemy_current_step == 4:
-                for i in range(36):
+                for i in range(len(self.enemies_list)):
                     self.enemies_position_list[i][2] -= 2.0
 
             # three steps to the left 
             elif 5 <= self.enemy_current_step <= 7:
-                for i in range(36):
+                for i in range(len(self.enemies_list)):
                     self.enemies_position_list[i][0] += 2.0
             
             # one step forward
             elif self.enemy_current_step == 8:
-                for i in range(36):
+                for i in range(len(self.enemies_list)):
                     self.enemies_position_list[i][1] += 2.0
 
             # reset the step count and check if it's time to switch
@@ -275,8 +275,11 @@ class Scene(SetupScene):
             self.bullet_list[i].render()
 
 
+
+
+
         # Render Enemy
-        for i in range(36):
+        for i in reversed(range(len(self.enemies_list))):
             scale_factor = 0.12
             self.prog_enemy['scale_factor'].value = scale_factor
             camera_pos = (0, 10, 20)
@@ -288,7 +291,7 @@ class Scene(SetupScene):
             self.light_enemy.value = camera_pos
             self.enemies_list[i].render()
 
-             # Check collision with the ship
+            # Check collision with the ship
             ship_box = [self.ship_position[0] - 1, self.ship_position[0] + 1,
                         self.ship_position[1] - 1, self.ship_position[1] + 1,
                         self.ship_position[2] - 1, self.ship_position[2] + 1]
@@ -297,9 +300,20 @@ class Scene(SetupScene):
                         self.enemies_position_list[i][1] - 1, self.enemies_position_list[i][1] + 1,
                         self.enemies_position_list[i][2] - 1, self.enemies_position_list[i][2] + 1]
 
+            for j in range(len(self.bullets_positions)):
+                bullet_box = [self.bullets_positions[j][0] - 0.5, self.bullets_positions[j][0] + 0.5,
+                            self.bullets_positions[j][1] - 0.5, self.bullets_positions[j][1] + 0.5,
+                            self.bullets_positions[j][2] - 0.5, self.bullets_positions[j][2] + 0.5]
+
+                if check_collision(bullet_box, enemy_box):
+                    print(i)
+                    del self.enemies_position_list[i]
+                    del self.enemies_list[i]
             if check_collision(ship_box, enemy_box):
                 print("Game Over: Ship collided with an enemy!")
 
+
+    
 def check_collision(box1, box2):
 # box: [min_x, max_x, min_y, max_y, min_z, max_z]
     return not (box1[1] < box2[0] or
