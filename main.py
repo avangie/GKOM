@@ -65,10 +65,10 @@ class Scene(SetupScene):
             0.0, 1.0, 0.0,
             0.0, 0.0, 1.0,
         ))
-        vao_wrapper = obj.root_nodes[0].mesh.vao
-        vao_wrapper.buffer(self.vbo_bullet, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
-        self.vao_bullet = vao_wrapper.instance(self.prog_bullet)
-        self.bullet_list.append(vao_wrapper.instance(self.prog_bullet))
+        self.vao_wrapper = obj.root_nodes[0].mesh.vao
+        self.vao_wrapper.buffer(self.vbo_bullet, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
+        self.vao_bullet = self.vao_wrapper.instance(self.prog_bullet)
+        self.bullet_list.append(self.vao_wrapper.instance(self.prog_bullet))
 
 
         # Initialize Ship
@@ -208,32 +208,27 @@ class Scene(SetupScene):
                     print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.SPACE:
                 print("BULLET SHOT")
-                obj = self.load_scene('bullet.obj')
-                self.vbo_bullet = self.ctx.buffer(struct.pack(
-                    '15f',
-                    *self.bullet_color,
-                    0.0, 0.0, 0.0,
-                    1.0, 0.0, 0.0,
-                    0.0, 1.0, 0.0,
-                    0.0, 0.0, 1.0,
-                ))
-                vao_wrapper = obj.root_nodes[0].mesh.vao
-                vao_wrapper.buffer(self.vbo_bullet, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
-                self.vao_bullet = vao_wrapper.instance(self.prog_bullet)
 
-                bullet_position = self.bullets_positions[-1]
-
-                bullet_position[1] -= step_size
+                bullet_position = self.ship_position
                 self.bullets_positions.append(np.array(bullet_position, dtype=np.float32))
-                self.bullet_list.append(vao_wrapper.instance(self.prog_bullet))
+                self.bullet_list.append(self.vao_wrapper.instance(self.prog_bullet))
 
-    def update_bullet_position(self, step_size):
-        # Update bullet position in every frame
-        if len(self.bullets_positions) > 0:
-            bullet_position = self.bullets_positions[-1]
+    def update_bullet_positions(self, step_size):
+        # Update positions of all bullets in every frame
+        i = 0
+        while i < len(self.bullets_positions):
+            bullet_position = self.bullets_positions[i]
             bullet_position[1] -= step_size
-            self.bullets_positions[-1] = np.array(bullet_position, dtype=np.float32)
 
+            # Check if the bullet is still within the visible range
+            if bullet_position[1] < -20:
+                # If not, remove it from the lists
+                del self.bullets_positions[i]
+                del self.bullet_list[i]
+            else:
+                # If yes, update its position
+                self.bullets_positions[i] = np.array(bullet_position, dtype=np.float32)
+                i += 1
 
     def render(self, time, frame_time):
 
@@ -268,24 +263,9 @@ class Scene(SetupScene):
         scale_factor = 0.1
         self.prog_bullet['scale_factor'].value = scale_factor
 
-        self.update_bullet_position(frame_time*10)  # Update bullet position in every frame
-
-
-        bullet_model = Matrix44.from_translation(self.bullet_position).astype('f4')
-        bullet_mvp = (proj * lookat * bullet_model).astype('f4')
-        self.mvp_bullet.write(bullet_mvp.tobytes())
-
-        self.light_bullet.value = camera_pos
-        self.vao_bullet.render()        
-
-
-        for i in range(4):
-            self.vao_bullet.render()  
-
+        self.update_bullet_positions(frame_time*30)  # Update bullet position in every frame
 
         for i in range(len(self.bullets_positions)):
-            scale_factor = 0.1
-            self.prog_enemy['scale_factor'].value = scale_factor
 
             bullet_model = Matrix44.from_translation(self.bullets_positions[i]).astype('f4')
             bullet_mvp = (proj * lookat * bullet_model).astype('f4')
@@ -304,7 +284,7 @@ class Scene(SetupScene):
             enemy_model = Matrix44.from_translation(self.enemies_position_list[i]).astype('f4')
             enemy_mvp = (proj * lookat * enemy_model).astype('f4')
             self.mvp_enemy.write(enemy_mvp.tobytes())
-            camera_pos = (0, 10, 20)
+            camera_pos = (0, 10, 20.0)
             self.light_enemy.value = camera_pos
             self.enemies_list[i].render()
 
