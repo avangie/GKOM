@@ -7,7 +7,12 @@ import moderngl
 from _main import SetupScene
 from shaders import *
 from particle_emitter import Particles
+import pygame
+from pygame import mixer
+import os
 
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def grid(size, steps):
     u = np.repeat(np.linspace(-size, size, steps), 2)
@@ -25,10 +30,10 @@ class Scene(SetupScene):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.ship_position = np.array([0.0, 13, 0.0], dtype=np.float32)
-        self.bullet_position = np.array([0.0, 5, 0.0], dtype=np.float32)
+
 
         self.bullet_list = []
-        self.bullets_positions = [self.bullet_position]
+        self.bullets_positions = []
 
         self.enemies_position_list = []
         for i in np.arange(-12, 15, 3):
@@ -37,6 +42,27 @@ class Scene(SetupScene):
 
         self.grid_size = 15
         self.enemies_list = []
+
+
+        # Initialize Pygame mixer
+        pygame.mixer.init()
+        mixer.init()
+        background_music_path = os.path.join(BASE_DIR, 'audio', 'background.mp3')
+        
+        pygame.mixer.music.load(background_music_path)
+        pygame.mixer.music.set_volume(0.1)  
+        pygame.mixer.music.play(-1) 
+
+        self.shoot_sound_path = background_music_path = os.path.join(BASE_DIR, 'audio', 'bullet.wav')
+        self.death_sound_path = background_music_path = os.path.join(BASE_DIR, 'audio', 'death.wav')
+
+        self.shoot_sound = mixer.Sound(self.shoot_sound_path)
+        self.death_sound = mixer.Sound(self.death_sound_path)
+
+        self.death_sound.set_volume(0.3)
+        self.shoot_sound.set_volume(0.3)
+
+
         # initialize SimpleGrid
         self.prog_grid = self.ctx.program(
             vertex_shader=vertex_shader_grid,
@@ -207,8 +233,9 @@ class Scene(SetupScene):
                     print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.SPACE:
                 print("BULLET SHOT")
-
-                bullet_position = self.ship_position
+                self.shoot_sound.play()
+                bullet_position = self.ship_position.copy()
+                bullet_position[1] -= 2
                 self.bullets_positions.append(np.array(bullet_position, dtype=np.float32))
                 self.bullet_list.append(self.vao_wrapper.instance(self.prog_bullet))
 
@@ -305,7 +332,7 @@ class Scene(SetupScene):
                             self.bullets_positions[j][2] - 0.5, self.bullets_positions[j][2] + 0.5]
 
                 if check_collision(bullet_box, enemy_box):
-                    print(i)
+                    self.death_sound.play()
                     del self.enemies_position_list[i]
                     del self.enemies_list[i]
             if check_collision(ship_box, enemy_box):
