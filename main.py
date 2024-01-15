@@ -43,15 +43,16 @@ class Scene(SetupScene):
         self.grid_size = 15
         self.enemies_list = []
 
+        self.points = 0
 
         # Initialize Pygame mixer
         pygame.mixer.init()
         mixer.init()
         background_music_path = os.path.join(BASE_DIR, 'audio', 'background.mp3')
-        
+
         pygame.mixer.music.load(background_music_path)
-        pygame.mixer.music.set_volume(0.1)  
-        pygame.mixer.music.play(-1) 
+        pygame.mixer.music.set_volume(0.1)
+        pygame.mixer.music.play(-1)
 
         self.shoot_sound_path = background_music_path = os.path.join(BASE_DIR, 'audio', 'bullet.wav')
         self.death_sound_path = background_music_path = os.path.join(BASE_DIR, 'audio', 'death.wav')
@@ -119,7 +120,7 @@ class Scene(SetupScene):
         vao_wrapper = obj.root_nodes[0].mesh.vao
         vao_wrapper.buffer(self.vbo_ship, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
         self.vao_ship = vao_wrapper.instance(self.prog_ship)
-        
+
 
         # initialize enemies
         self.prog_enemy = self.ctx.program(
@@ -144,7 +145,7 @@ class Scene(SetupScene):
             vao_wrapper = obj.root_nodes[0].mesh.vao
             vao_wrapper.buffer(self.vbo_enemy, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
             self.enemies_list.append(vao_wrapper.instance(self.prog_enemy))
-        
+
         # initialize enemy movement variables
         self.enemy_current_step = 0
         self.enemy_time_since_last_step = 0
@@ -171,11 +172,11 @@ class Scene(SetupScene):
                 for i in range(len(self.enemies_list)):
                     self.enemies_position_list[i][2] -= 2.0
 
-            # three steps to the left 
+            # three steps to the left
             elif 5 <= self.enemy_current_step <= 7:
                 for i in range(len(self.enemies_list)):
                     self.enemies_position_list[i][0] += 2.0
-            
+
             # one step forward
             elif self.enemy_current_step == 8:
                 for i in range(len(self.enemies_list)):
@@ -333,13 +334,15 @@ class Scene(SetupScene):
 
                 if check_collision(bullet_box, enemy_box):
                     self.death_sound.play()
+                    self.points += 10
+                    print(f"Points: {self.points}")
                     del self.enemies_position_list[i]
                     del self.enemies_list[i]
             if check_collision(ship_box, enemy_box):
                 print("Game Over: Ship collided with an enemy!")
 
 
-    
+
 def check_collision(box1, box2):
 # box: [min_x, max_x, min_y, max_y, min_z, max_z]
     return not (box1[1] < box2[0] or
