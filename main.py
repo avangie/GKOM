@@ -74,14 +74,14 @@ class Scene(SetupScene):
         # Initialize Ship
         self.ship_color = random_color()
         self.prog_ship = self.ctx.program(
-            vertex_shader=vertex_shader_bullet,
-            fragment_shader=fragment_shader_bullet
+            vertex_shader=vertex_shader_ship,
+            fragment_shader=fragment_shader_ship
         )
 
         self.mvp_ship = self.prog_ship['Mvp']
         self.light_ship = self.prog_ship['Light']
 
-        obj = self.load_scene('spaceship.obj')
+        obj = self.load_scene('spaceship_with_fire.obj')
         self.vbo_ship = self.ctx.buffer(struct.pack(
             '15f',
             *self.ship_color,
@@ -94,7 +94,6 @@ class Scene(SetupScene):
         vao_wrapper.buffer(self.vbo_ship, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
         self.vao_ship = vao_wrapper.instance(self.prog_ship)
         
-
 
         # initialize enemies
         self.prog_enemy = self.ctx.program(
