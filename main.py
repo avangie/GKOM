@@ -192,47 +192,42 @@ class Scene(SetupScene):
             step_size = 2 * self.grid_size / 10
             if key == self.wnd.keys.UP:
                 print("UP PRESSED")
-                print(self.ship_position)
                 if self.ship_position[2] < 9:
                     self.ship_position[2] += step_size  # Move up
                 else:
                     print('CANT GO HIGHER')
             elif key == self.wnd.keys.DOWN:
                 print("DOWN PRESSED")
-                print(self.ship_position)
                 if self.ship_position[2] > 0:
                     self.ship_position[2] -= step_size  # Move down
                 else:
                     print('CANT GO LOWER')
             elif key == self.wnd.keys.LEFT:
                 print("LEFT PRESSED")
-                print(self.ship_position)
                 if self.ship_position[0] < 12:
                     self.ship_position[0] += step_size  # Move left
                 else:
                     print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.RIGHT:
                 print("RIGHT PRESSED")
-                print(self.ship_position)
                 if self.ship_position[0] > -12:
                     self.ship_position[0] -= step_size  # Move left
                 else:
                     print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.Z:
                 print("DOWN PRESSED")
-                print(self.ship_position)
                 if self.ship_position[1] > -12:
                     self.ship_position[1] -= step_size  # Move forward
                 else:
                     print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.X:
                 print("UP PRESSED")
-                print(self.ship_position)
                 if self.ship_position[1] < 12:
                     self.ship_position[1] += step_size  # Move back
                 else:
                     print("CANNOT LEAVE THE BOARD ")
-            elif key == self.wnd.keys.SPACE:
+            print(self.ship_position)
+            if key == self.wnd.keys.SPACE:
                 print("BULLET SHOT")
                 self.shoot_sound.play()
                 bullet_position = self.ship_position.copy()
