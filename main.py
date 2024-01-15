@@ -215,13 +215,13 @@ class Scene(SetupScene):
                 else:
                     print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.Z:
-                print("DOWN PRESSED")
+                print("FORWARDS PRESSED")
                 if self.ship_position[1] > -12:
                     self.ship_position[1] -= step_size  # Move forward
                 else:
                     print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.X:
-                print("UP PRESSED")
+                print("BACKWARDS PRESSED")
                 if self.ship_position[1] < 12:
                     self.ship_position[1] += step_size  # Move back
                 else:
