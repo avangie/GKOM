@@ -10,6 +10,7 @@ from particle_emitter import Particles
 import pygame
 from pygame import mixer
 import os
+import time as tm
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -30,8 +31,7 @@ class Scene(SetupScene):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.ship_position = np.array([0.0, 13, 0.0], dtype=np.float32)
-
-
+        self.game_end = False
         self.bullet_list = []
         self.bullets_positions = []
 
@@ -187,53 +187,54 @@ class Scene(SetupScene):
 
     def key_event(self, key, action, modifiers):
         """Handle key events."""
-        if action == self.wnd.keys.ACTION_PRESS:
-            # Calculate the step size based on grid size and number of steps
-            step_size = 2 * self.grid_size / 10
-            if key == self.wnd.keys.UP:
-                print("UP PRESSED")
-                if self.ship_position[2] < 9:
-                    self.ship_position[2] += step_size  # Move up
-                else:
-                    print('CANT GO HIGHER')
-            elif key == self.wnd.keys.DOWN:
-                print("DOWN PRESSED")
-                if self.ship_position[2] > 0:
-                    self.ship_position[2] -= step_size  # Move down
-                else:
-                    print('CANT GO LOWER')
-            elif key == self.wnd.keys.LEFT:
-                print("LEFT PRESSED")
-                if self.ship_position[0] < 12:
-                    self.ship_position[0] += step_size  # Move left
-                else:
-                    print("CANNOT LEAVE THE BOARD ")
-            elif key == self.wnd.keys.RIGHT:
-                print("RIGHT PRESSED")
-                if self.ship_position[0] > -12:
-                    self.ship_position[0] -= step_size  # Move left
-                else:
-                    print("CANNOT LEAVE THE BOARD ")
-            elif key == self.wnd.keys.Z:
-                print("FORWARDS PRESSED")
-                if self.ship_position[1] > -12:
-                    self.ship_position[1] -= step_size  # Move forward
-                else:
-                    print("CANNOT LEAVE THE BOARD ")
-            elif key == self.wnd.keys.X:
-                print("BACKWARDS PRESSED")
-                if self.ship_position[1] < 12:
-                    self.ship_position[1] += step_size  # Move back
-                else:
-                    print("CANNOT LEAVE THE BOARD ")
-            print(self.ship_position)
-            if key == self.wnd.keys.SPACE:
-                print("BULLET SHOT")
-                self.shoot_sound.play()
-                bullet_position = self.ship_position.copy()
-                bullet_position[1] -= 2
-                self.bullets_positions.append(np.array(bullet_position, dtype=np.float32))
-                self.bullet_list.append(self.vao_wrapper.instance(self.prog_bullet))
+        if not self.game_end:
+            if action == self.wnd.keys.ACTION_PRESS:
+                # Calculate the step size based on grid size and number of steps
+                step_size = 2 * self.grid_size / 10
+                if key == self.wnd.keys.UP:
+                    print("UP PRESSED")
+                    if self.ship_position[2] < 9:
+                        self.ship_position[2] += step_size  # Move up
+                    else:
+                        print('CANT GO HIGHER')
+                elif key == self.wnd.keys.DOWN:
+                    print("DOWN PRESSED")
+                    if self.ship_position[2] > 0:
+                        self.ship_position[2] -= step_size  # Move down
+                    else:
+                        print('CANT GO LOWER')
+                elif key == self.wnd.keys.LEFT:
+                    print("LEFT PRESSED")
+                    if self.ship_position[0] < 12:
+                        self.ship_position[0] += step_size  # Move left
+                    else:
+                        print("CANNOT LEAVE THE BOARD ")
+                elif key == self.wnd.keys.RIGHT:
+                    print("RIGHT PRESSED")
+                    if self.ship_position[0] > -12:
+                        self.ship_position[0] -= step_size  # Move left
+                    else:
+                        print("CANNOT LEAVE THE BOARD ")
+                elif key == self.wnd.keys.Z:
+                    print("FORWARDS PRESSED")
+                    if self.ship_position[1] > -12:
+                        self.ship_position[1] -= step_size  # Move forward
+                    else:
+                        print("CANNOT LEAVE THE BOARD ")
+                elif key == self.wnd.keys.X:
+                    print("BACKWARDS PRESSED")
+                    if self.ship_position[1] < 12:
+                        self.ship_position[1] += step_size  # Move back
+                    else:
+                        print("CANNOT LEAVE THE BOARD ")
+                print(self.ship_position)
+                if key == self.wnd.keys.SPACE:
+                    print("BULLET SHOT")
+                    self.shoot_sound.play()
+                    bullet_position = self.ship_position.copy()
+                    bullet_position[1] -= 2
+                    self.bullets_positions.append(np.array(bullet_position, dtype=np.float32))
+                    self.bullet_list.append(self.vao_wrapper.instance(self.prog_bullet))
 
     def update_bullet_positions(self, step_size):
         # Update positions of all bullets in every frame
@@ -242,13 +243,10 @@ class Scene(SetupScene):
             bullet_position = self.bullets_positions[i]
             bullet_position[1] -= step_size
 
-            # Check if the bullet is still within the visible range
             if bullet_position[1] < -20:
-                # If not, remove it from the lists
                 del self.bullets_positions[i]
                 del self.bullet_list[i]
             else:
-                # If yes, update its position
                 self.bullets_positions[i] = np.array(bullet_position, dtype=np.float32)
                 i += 1
 
@@ -335,6 +333,75 @@ class Scene(SetupScene):
                     del self.enemies_list[i]
             if check_collision(ship_box, enemy_box):
                 print("Game Over: Ship collided with an enemy!")
+                self.game_end = True
+                self.death_sound.play()
+                self.ship_position = np.array([1.3, 24, 18.5], dtype=np.float32)
+
+                self.ship_color = random_color()
+                self.prog_ship = self.ctx.program(
+                    vertex_shader=vertex_shader_game_over,
+                    fragment_shader=fragment_shader_game_over
+                )
+
+                self.mvp_ship = self.prog_ship['Mvp']
+                self.light_ship = self.prog_ship['Light']
+
+                
+                obj = self.load_scene('gover.obj')
+                self.vbo_ship = self.ctx.buffer(struct.pack(
+                    '15f',
+                    *self.ship_color,
+                    0.0, 0.0, 0.0,
+                    1.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0,
+                    0.0, 0.0, 1.0,
+                ))
+
+
+
+                vao_wrapper = obj.root_nodes[0].mesh.vao
+                vao_wrapper.buffer(self.vbo_ship, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
+                self.vao_ship = vao_wrapper.instance(self.prog_ship)
+                camera_pos = (20, 20, 50.0)
+                self.light_ship.value = camera_pos
+                self.vao_ship.render()
+        
+        if len(self.enemies_list) == 0 and not self.game_end:
+            self.game_won()
+            
+
+    def game_won(self):
+        print("Game WON!")
+        self.game_end = True
+        self.death_sound.play()
+        self.ship_position = np.array([1.3, 24, 18.5], dtype=np.float32)
+        camera_pos = (0, 20, 20.0)
+        self.light_enemy.value = camera_pos
+        self.light_ship.value = camera_pos
+        self.ship_color = random_color()
+        self.prog_ship = self.ctx.program(
+            vertex_shader=vertex_shader_game_over,
+            fragment_shader=fragment_shader_game_over
+        )
+
+        self.mvp_ship = self.prog_ship['Mvp']
+        self.light_ship = self.prog_ship['Light']
+
+        obj = self.load_scene('gwon.obj')
+        self.vbo_ship = self.ctx.buffer(struct.pack(
+            '15f',
+            *self.ship_color,
+            0.0, 0.0, 0.0,
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0,
+        ))
+        vao_wrapper = obj.root_nodes[0].mesh.vao
+        vao_wrapper.buffer(self.vbo_ship, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
+        self.vao_ship = vao_wrapper.instance(self.prog_ship)
+        self.vao_ship.render()
+
+
 
 
 
