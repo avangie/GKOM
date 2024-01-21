@@ -1,4 +1,3 @@
-
 vertex_shader_grid='''
     #version 330
     uniform mat4 Mvp;
@@ -37,7 +36,7 @@ vertex_shader_ship = '''
     void main() {
         vec3 worldPos = in_origin + in_basis * (in_position * scale_factor);
 
-
+        worldPos.z = -worldPos.z;
 
         FragPos = vec3(Mvp * vec4(worldPos, 1.0));
         Normal = normalize(in_basis * in_normal);
@@ -105,8 +104,18 @@ vertex_shader_enemy = '''
     void main() {
         vec3 worldPos = in_origin + in_basis * (in_position * scale_factor);
 
-        // Flip the Y component to fix upside-down rendering
+        // Rotate the Y component to fix upside-down rendering
         worldPos.y = -worldPos.y;
+
+        // Rotate the X component using transformation matrix
+        mat3 flip_matrix1 = mat3(
+            1.0, 0.0, 0.0,
+            0.0, cos(radians(90.0)), -sin(radians(90.0)),
+            0.0, sin(radians(90.0)), cos(radians(90.0))
+        );
+
+        // Rotate
+        worldPos = flip_matrix1 * worldPos;
 
         FragPos = vec3(Mvp * vec4(worldPos, 1.0));
         Normal = normalize(in_basis * in_normal);
