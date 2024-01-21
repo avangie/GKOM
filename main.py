@@ -182,7 +182,7 @@ class Scene(SetupScene):
 
 
         obj = self.load_scene('enemy.obj')
-        for i in range(36):
+        for i in range(2):
             self.enemy_color = random_color()
             self.vbo_enemy = self.ctx.buffer(struct.pack(
                 '15f',
@@ -380,6 +380,8 @@ class Scene(SetupScene):
 
         # Render Enemy
         for i in reversed(range(len(self.enemies_list))):
+
+
             scale_factor = 0.12
             self.prog_enemy['scale_factor'].value = scale_factor
             enemy_model = Matrix44.from_translation(self.enemies_position_list[i]).astype('f4')
@@ -392,33 +394,37 @@ class Scene(SetupScene):
             self.enemies_list[i].render()
 
             # Check collision with the ship
-            ship_box = [self.ship_position[0] - 1, self.ship_position[0] + 1,
-                        self.ship_position[1] - 1, self.ship_position[1] + 1,
-                        self.ship_position[2] - 1, self.ship_position[2] + 1]
+            if self.vao_ship != None:
+            
+                ship_box = [self.ship_position[0] - 1, self.ship_position[0] + 1,
+                            self.ship_position[1] - 1, self.ship_position[1] + 1,
+                            self.ship_position[2] - 1, self.ship_position[2] + 1]
 
-            enemy_box = [self.enemies_position_list[i][0] - 1, self.enemies_position_list[i][0] + 1,
-                        self.enemies_position_list[i][1] - 1, self.enemies_position_list[i][1] + 1,
-                        self.enemies_position_list[i][2] - 1, self.enemies_position_list[i][2] + 1]
+                enemy_box = [self.enemies_position_list[i][0] - 1, self.enemies_position_list[i][0] + 1,
+                            self.enemies_position_list[i][1] - 1, self.enemies_position_list[i][1] + 1,
+                            self.enemies_position_list[i][2] - 1, self.enemies_position_list[i][2] + 1]
 
-            for j in range(len(self.bullets_positions)):
-                bullet_box = [self.bullets_positions[j][0] - 0.5, self.bullets_positions[j][0] + 0.5,
-                            self.bullets_positions[j][1] - 0.5, self.bullets_positions[j][1] + 0.5,
-                            self.bullets_positions[j][2] - 0.5, self.bullets_positions[j][2] + 0.5]
+                for j in range(len(self.bullets_positions)):
+                    bullet_box = [self.bullets_positions[j][0] - 0.5, self.bullets_positions[j][0] + 0.5,
+                                self.bullets_positions[j][1] - 0.5, self.bullets_positions[j][1] + 0.5,
+                                self.bullets_positions[j][2] - 0.5, self.bullets_positions[j][2] + 0.5]
 
-                if check_collision(bullet_box, enemy_box):
-                    self.death_sound.play()
-                    self.points += 10
-                    print(f"Points: {self.points}")
-                    del self.enemies_position_list[i]
-                    del self.enemies_list[i]
+                    if check_collision(bullet_box, enemy_box):
+                        self.death_sound.play()
+                        self.points += 10
+                        print(f"Points: {self.points}")
+                        del self.enemies_position_list[i]
+                        del self.enemies_list[i]
+                        if len(self.enemies_list) == 0:
+                            self.game_end = True
 
 
-            if check_collision(ship_box, enemy_box):
-                print("Game Over: Ship collided with an enemy!")
-                self.game_end = True
+                if check_collision(ship_box, enemy_box):
+                    print("Game Over: Ship collided with an enemy!")
+                    self.game_end = True
 
     def game_over(self):
-        print("Game WON!")
+        print("Game Over: Ship collided with an enemy!")
         self.vao_ship = None
         
         proj = Matrix44.perspective_projection(45.0, self.aspect_ratio, 0.1, 1000.0)
