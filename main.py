@@ -6,7 +6,6 @@ from pyrr import Matrix44
 import moderngl
 from _main import SetupScene
 from shaders import *
-from particle_emitter import Particles
 import pygame
 from pygame import mixer
 import os
