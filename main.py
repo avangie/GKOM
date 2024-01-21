@@ -41,16 +41,18 @@ class Scene(SetupScene):
 
         self.grid_size = 15
         self.enemies_list = []
+
+        self.game_end = False
         self.points = 0
 
         # Initialize Pygame mixer
         pygame.mixer.init()
         mixer.init()
-        #background_music_path = os.path.join(BASE_DIR, 'audio', 'background.mp3')
+        background_music_path = os.path.join(BASE_DIR, 'audio', 'background.mp3')
         
-        #pygame.mixer.music.load(background_music_path)
-        #pygame.mixer.music.set_volume(0.1)  
-        #pygame.mixer.music.play(-1) 
+        pygame.mixer.music.load(background_music_path)
+        pygame.mixer.music.set_volume(0.1)  
+        pygame.mixer.music.play(-1) 
 
         self.shoot_sound_path = background_music_path = os.path.join(BASE_DIR, 'audio', 'bullet.wav')
         self.death_sound_path = background_music_path = os.path.join(BASE_DIR, 'audio', 'death.wav')
@@ -58,8 +60,8 @@ class Scene(SetupScene):
         self.shoot_sound = mixer.Sound(self.shoot_sound_path)
         self.death_sound = mixer.Sound(self.death_sound_path)
 
-        self.death_sound.set_volume(0.3)
-        self.shoot_sound.set_volume(0.3)
+        self.death_sound.set_volume(0.1)
+        self.shoot_sound.set_volume(0.1)
 
         # initialize SimpleGrid
         self.prog_grid = self.ctx.program(
@@ -96,6 +98,56 @@ class Scene(SetupScene):
     
         self.vao_bullet = self.vao_wrapper.instance(self.prog_bullet)
         self.bullet_list.append(self.vao_wrapper.instance(self.prog_bullet))
+
+        # initialize gwon 
+        self.gwon_color = random_color()
+        self.prog_gwon = self.ctx.program(
+            vertex_shader=vertex_shader_game_over,
+            fragment_shader=fragment_shader_game_over
+        )
+
+        self.mvp_gwon = self.prog_gwon['Mvp']
+        self.light_gwon = self.prog_gwon['Light']
+
+        obj = self.load_scene('gwon.obj')
+        self.vbo_gwon = self.ctx.buffer(struct.pack(
+            '15f',
+            *self.gwon_color,
+            0.0, 0.0, 0.0,
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0,
+        ))
+        vao_wrapper = obj.root_nodes[0].mesh.vao
+        vao_wrapper.buffer(self.vbo_gwon, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
+        self.vao_gwon = vao_wrapper.instance(self.prog_gwon)
+
+
+        # initialize gover 
+        self.gover_color = random_color()
+        self.prog_gover = self.ctx.program(
+            vertex_shader=vertex_shader_game_over,
+            fragment_shader=fragment_shader_game_over
+        )
+
+        self.mvp_gover = self.prog_gover['Mvp']
+        self.light_gover = self.prog_gover['Light']
+
+        obj = self.load_scene('gover.obj')
+        self.vbo_gover = self.ctx.buffer(struct.pack(
+            '15f',
+            *self.gover_color,
+            0.0, 0.0, 0.0,
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0,
+        ))
+        vao_wrapper = obj.root_nodes[0].mesh.vao
+        vao_wrapper.buffer(self.vbo_gover, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
+        self.vao_gover = vao_wrapper.instance(self.prog_gover)
+
+
+
 
         # Initialize Ship
         self.ship_color = random_color()
@@ -205,14 +257,14 @@ class Scene(SetupScene):
             elif key == self.wnd.keys.LEFT:
                 print("LEFT PRESSED")
                 print(self.ship_position)
-                if self.ship_position[0] < 12:
+                if self.ship_position[0] < 13:
                     self.ship_position[0] += step_size  # Move left
                 else:
                     print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.RIGHT:
                 print("RIGHT PRESSED")
                 print(self.ship_position)
-                if self.ship_position[0] > -12:
+                if self.ship_position[0] > -13:
                     self.ship_position[0] -= step_size  # Move left
                 else:
                     print("CANNOT LEAVE THE BOARD ")
@@ -232,11 +284,12 @@ class Scene(SetupScene):
                     print("CANNOT LEAVE THE BOARD ")
             elif key == self.wnd.keys.SPACE:
                 print("BULLET SHOT")
-                self.shoot_sound.play()
-                bullet_position = self.ship_position.copy()
-                bullet_position[1] -= 2
-                self.bullets_positions.append(np.array(bullet_position, dtype=np.float32))
-                self.bullet_list.append(self.vao_wrapper.instance(self.prog_bullet))
+                if self.vao_ship != None:
+                    self.shoot_sound.play()
+                    bullet_position = self.ship_position.copy()
+                    bullet_position[1] -= 2
+                    self.bullets_positions.append(np.array(bullet_position, dtype=np.float32))
+                    self.bullet_list.append(self.vao_wrapper.instance(self.prog_bullet))
 
     def update_bullet_positions(self, step_size):
         # Update positions of all bullets in every frame
@@ -255,41 +308,17 @@ class Scene(SetupScene):
                 self.bullets_positions[i] = np.array(bullet_position, dtype=np.float32)
                 i += 1
 
-    def game_won(self):
-        print("Game WON!")
-        self.game_end = True
-        self.death_sound.play()
-        self.ship_position = np.array([1.3, 24, 18.5], dtype=np.float32)
-        self.ship_color = random_color()
-        self.prog_ship = self.ctx.program(
-            vertex_shader=vertex_shader_game_over,
-            fragment_shader=fragment_shader_game_over
-        )
-
-        self.mvp_ship = self.prog_ship['Mvp']
-        self.light_ship = self.prog_ship['Light']
-
-        obj = self.load_scene('gwon.obj')
-        self.vbo_ship = self.ctx.buffer(struct.pack(
-            '15f',
-            *self.ship_color,
-            0.0, 0.0, 0.0,
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-        ))
-        vao_wrapper = obj.root_nodes[0].mesh.vao
-        vao_wrapper.buffer(self.vbo_ship, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
-        self.vao_ship = vao_wrapper.instance(self.prog_ship)
-        self.vao_ship.render()
-
-
 
     def render(self, time, frame_time):
 
         self.ctx.clear(0.0, 0.0, 0.0)
         self.ctx.enable(moderngl.DEPTH_TEST)
-
+        if self.game_end:
+            # Game has ended, render appropriate screen (game over or game won)
+            if len(self.enemies_list) == 0:
+                self.game_won()
+            else:
+                self.game_over()
         # Set light intensity for ship
         self.prog_ship['lightIntensity'].value = 1.   # Set the desired light intensity value
 
@@ -327,8 +356,8 @@ class Scene(SetupScene):
         self.prog_ship['lightPos'].value = light_pos
         self.prog_ship['viewPos'].value = camera_pos
 
-
-        self.vao_ship.render()
+        if self.vao_ship != None:
+            self.vao_ship.render()
 
         # Render Bullet
         scale_factor = 0.1
@@ -346,8 +375,6 @@ class Scene(SetupScene):
             self.prog_bullet['viewPos'].value = camera_pos
 
             self.bullet_list[i].render()
-
-
 
 
         # Render Enemy
@@ -379,12 +406,55 @@ class Scene(SetupScene):
 
                 if check_collision(bullet_box, enemy_box):
                     self.death_sound.play()
+                    self.points += 10
+                    print(f"Points: {self.points}")
                     del self.enemies_position_list[i]
-
                     del self.enemies_list[i]
+
+
             if check_collision(ship_box, enemy_box):
                 print("Game Over: Ship collided with an enemy!")
+                self.game_end = True
 
+    def game_over(self):
+        print("Game WON!")
+        self.vao_ship = None
+        
+        proj = Matrix44.perspective_projection(45.0, self.aspect_ratio, 0.1, 1000.0)
+        lookat = Matrix44.look_at(
+            (0.0, 30.0, 30.0),
+            (0.0, 0.0, 0.0),
+            (0.0, 0.0, 1.0),
+        )
+
+        gover_model = Matrix44.from_translation((0.0, 13, 0.0)).astype('f4')
+        gover_mvp = (proj * lookat * gover_model).astype('f4')
+        self.mvp_gover.write(gover_mvp.tobytes())
+        
+        self.prog_gover['scale_factor'] = 0.2
+        self.prog_gover['Light'] = (0.0, 13, 0.0)
+        
+        self.vao_gover.render()
+
+    def game_won(self):
+        print("Game WON!")
+        self.vao_ship = None
+        
+        proj = Matrix44.perspective_projection(45.0, self.aspect_ratio, 0.1, 1000.0)
+        lookat = Matrix44.look_at(
+            (0.0, 30.0, 30.0),
+            (0.0, 0.0, 0.0),
+            (0.0, 0.0, 1.0),
+        )
+
+        gwon_model = Matrix44.from_translation((0.0, 13, 0.0)).astype('f4')
+        gwon_mvp = (proj * lookat * gwon_model).astype('f4')
+        self.mvp_gwon.write(gwon_mvp.tobytes())
+        
+        self.prog_gwon['scale_factor'] = 0.2
+        self.prog_gwon['Light'] = (0.0, 13, 0.0)
+        
+        self.vao_gwon.render()
 
     
 def check_collision(box1, box2):
