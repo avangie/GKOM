@@ -47,11 +47,11 @@ class Scene(SetupScene):
         # Initialize Pygame mixer
         pygame.mixer.init()
         mixer.init()
-        background_music_path = os.path.join(BASE_DIR, 'audio', 'background.mp3')
+        #background_music_path = os.path.join(BASE_DIR, 'audio', 'background.mp3')
         
-        pygame.mixer.music.load(background_music_path)
-        pygame.mixer.music.set_volume(0.1)  
-        pygame.mixer.music.play(-1) 
+        #pygame.mixer.music.load(background_music_path)
+        #pygame.mixer.music.set_volume(0.1)  
+        #pygame.mixer.music.play(-1) 
 
         self.shoot_sound_path = background_music_path = os.path.join(BASE_DIR, 'audio', 'bullet.wav')
         self.death_sound_path = background_music_path = os.path.join(BASE_DIR, 'audio', 'death.wav')
@@ -80,9 +80,10 @@ class Scene(SetupScene):
         )
 
         self.mvp_bullet = self.prog_bullet['Mvp']
-        self.light_bullet = self.prog_bullet['Light']
 
         obj = self.load_scene('bullet.obj')
+
+
         self.vbo_bullet = self.ctx.buffer(struct.pack(
             '15f',
             *self.bullet_color,
@@ -93,6 +94,8 @@ class Scene(SetupScene):
         ))
         self.vao_wrapper = obj.root_nodes[0].mesh.vao
         self.vao_wrapper.buffer(self.vbo_bullet, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
+       
+    
         self.vao_bullet = self.vao_wrapper.instance(self.prog_bullet)
         self.bullet_list.append(self.vao_wrapper.instance(self.prog_bullet))
 
@@ -105,7 +108,6 @@ class Scene(SetupScene):
         )
 
         self.mvp_ship = self.prog_ship['Mvp']
-        self.light_ship = self.prog_ship['Light']
 
         obj = self.load_scene('spaceship_with_fire.obj')
         self.vbo_ship = self.ctx.buffer(struct.pack(
@@ -128,7 +130,7 @@ class Scene(SetupScene):
         )
 
         self.mvp_enemy = self.prog_enemy['Mvp']
-        self.light_enemy = self.prog_enemy['Light']
+
 
         obj = self.load_scene('enemy.obj')
         for i in range(36):
@@ -282,7 +284,11 @@ class Scene(SetupScene):
         ship_mvp = (proj * lookat * ship_model).astype('f4')
         self.mvp_ship.write(ship_mvp.tobytes())
 
-        self.light_ship.value = camera_pos
+            # Set Phong shading uniforms for ship
+        self.prog_ship['lightPos'].value = camera_pos
+        self.prog_ship['viewPos'].value = (0, 0, 0)
+
+
         self.vao_ship.render()
 
         # Render Bullet
@@ -296,8 +302,10 @@ class Scene(SetupScene):
             bullet_model = Matrix44.from_translation(self.bullets_positions[i]).astype('f4')
             bullet_mvp = (proj * lookat * bullet_model).astype('f4')
             self.mvp_bullet.write(bullet_mvp.tobytes())
+            # Set Phong shading uniforms for bullet
+            self.prog_bullet['lightPos'].value = camera_pos
+            self.prog_bullet['viewPos'].value = (0, 0, 0)
 
-            self.light_enemy.value = camera_pos
             self.bullet_list[i].render()
 
 
@@ -314,7 +322,11 @@ class Scene(SetupScene):
             enemy_mvp = (proj * lookat * enemy_model).astype('f4')
             self.mvp_enemy.write(enemy_mvp.tobytes())
             camera_pos = (0, 10, 20.0)
-            self.light_enemy.value = camera_pos
+
+            # Set Phong shading uniforms for enemy
+            self.prog_enemy['lightPos'].value = camera_pos
+            self.prog_enemy['viewPos'].value = (0, 0, 0)
+
             self.enemies_list[i].render()
 
             # Check collision with the ship
@@ -334,6 +346,7 @@ class Scene(SetupScene):
                 if check_collision(bullet_box, enemy_box):
                     self.death_sound.play()
                     del self.enemies_position_list[i]
+
                     del self.enemies_list[i]
             if check_collision(ship_box, enemy_box):
                 print("Game Over: Ship collided with an enemy!")
