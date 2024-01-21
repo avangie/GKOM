@@ -38,8 +38,23 @@ vertex_shader_ship = '''
     void main() {
         vec3 worldPos = in_origin + in_basis * (in_position * scale_factor);
 
-        worldPos.z = -worldPos.z;
+        worldPos.z = worldPos.z;
 
+        // Rotate the X component using transformation matrix
+        mat3 flip_matrix = mat3(
+            1.0, 0.0, 0.0,
+            0.0, cos(radians(90.0)), -sin(radians(90.0)),
+            0.0, sin(radians(90.0)), cos(radians(90.0))
+        );
+
+        mat3 flip_matrix1 = mat3(
+            cos(radians(180.0)), -sin(radians(180.0)), 0.0,
+            sin(radians(180.0)), cos(radians(180.0)), 0.0,
+            0.0, 0.0, 1.0
+        );
+
+        // Rotate
+        worldPos = flip_matrix * flip_matrix1 * worldPos;
         FragPos = vec3(Mvp * vec4(worldPos, 1.0));
         Normal = normalize(in_basis * in_normal);
         Color = in_color;
@@ -47,6 +62,7 @@ vertex_shader_ship = '''
         gl_Position = Mvp * vec4(worldPos, 1.0);
     }
 '''
+
 
 # fragment_shader_ship
 fragment_shader_ship = '''
@@ -236,5 +252,63 @@ fragment_shader_bullet = '''
 
         vec3 result = ambient + diffuse + specular;
         fragColor = vec4(result * lightIntensity, 1.0);
+    }
+'''
+
+vertex_shader_game_over='''
+    #version 330
+    uniform mat4 Mvp;
+    uniform float scale_factor;
+
+    in vec3 in_position;
+    in vec3 in_normal;
+    in vec3 in_color;
+    in vec3 in_origin;
+    in mat3 in_basis;
+
+    out vec3 v_vert;
+    out vec3 v_norm;
+    out vec3 v_color;
+
+    void main() {
+        // Transform position using origin, basis, and scale_factor
+        v_vert = in_origin + in_basis * (in_position * scale_factor);
+        
+        // Rotate the position 180 degrees around the x-axis to turn it upside down
+        mat3 flip_matrix = mat3(
+            1.0, 0.0, 0.0,
+            0.0, cos(radians(45.0)), -sin(radians(45.0)),
+            0.0, sin(radians(45.0)), cos(radians(45.0))
+        );
+
+        mat3 flip_matrix1 = mat3(
+            cos(radians(180.0)), -sin(radians(180.0)), 0.0,
+            sin(radians(180.0)), cos(radians(180.0)), 0.0,
+            0.0, 0.0, 1.0
+        );
+
+
+        v_vert = flip_matrix * flip_matrix1 * v_vert;
+
+        // Transform normal using basis
+        v_norm = in_basis * in_normal;
+        
+        // Pass color through
+        v_color = in_color;
+        
+        gl_Position = Mvp * vec4(v_vert, 1.0);
+    }
+'''
+
+fragment_shader_game_over='''
+    #version 330
+    uniform vec3 Light;
+    in vec3 v_vert;
+    in vec3 v_norm;
+    in vec3 v_color;
+    out vec4 fragColor;
+    void main() {
+        float lum = clamp(dot(normalize(Light - v_vert), normalize(v_norm)), 0.0, 1.0) * 0.8 + 0.2;
+        fragColor = vec4(v_color * lum, 1.0);
     }
 '''

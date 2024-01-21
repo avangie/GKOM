@@ -41,7 +41,7 @@ class Scene(SetupScene):
 
         self.grid_size = 15
         self.enemies_list = []
-
+        self.points = 0
 
         # Initialize Pygame mixer
         pygame.mixer.init()
@@ -260,9 +260,6 @@ class Scene(SetupScene):
         self.game_end = True
         self.death_sound.play()
         self.ship_position = np.array([1.3, 24, 18.5], dtype=np.float32)
-        camera_pos = (0, 20, 20.0)
-        self.light_enemy.value = camera_pos
-        self.light_ship.value = camera_pos
         self.ship_color = random_color()
         self.prog_ship = self.ctx.program(
             vertex_shader=vertex_shader_game_over,
@@ -319,8 +316,8 @@ class Scene(SetupScene):
         # Render Ship
         scale_factor = 0.1
         self.prog_ship['scale_factor'].value = scale_factor
-        camera_pos = (20, 20, -20.0)
-        light_pos = (0, -20, -20)
+        camera_pos =(-100, 10, -20.0) 
+        light_pos = (0, 0, -20.0)
 
         ship_model = Matrix44.from_translation(self.ship_position).astype('f4')
         ship_mvp = (proj * lookat * ship_model).astype('f4')
@@ -351,17 +348,15 @@ class Scene(SetupScene):
             self.bullet_list[i].render()
 
 
+
+
         # Render Enemy
         for i in reversed(range(len(self.enemies_list))):
             scale_factor = 0.12
             self.prog_enemy['scale_factor'].value = scale_factor
-            
-
             enemy_model = Matrix44.from_translation(self.enemies_position_list[i]).astype('f4')
             enemy_mvp = (proj * lookat * enemy_model).astype('f4')
             self.mvp_enemy.write(enemy_mvp.tobytes())
-
-
             # Set Phong shading uniforms for enemy
             self.prog_enemy['lightPos'].value = light_pos
             self.prog_enemy['viewPos'].value = camera_pos
