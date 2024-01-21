@@ -17,6 +17,8 @@ fragment_shader_grid='''
         fragColor = vec4(vec3(stars), 1.0);
     }
 '''
+
+
 # vertex_shader_ship
 vertex_shader_ship = '''
     #version 330
@@ -51,6 +53,8 @@ fragment_shader_ship = '''
     #version 330
     uniform vec3 lightPos;
     uniform vec3 viewPos;
+    uniform float lightIntensity;
+
 
     in vec3 FragPos;
     in vec3 Normal;
@@ -81,7 +85,7 @@ fragment_shader_ship = '''
         vec3 specular = specularStrength * spec * vec3(1.0, 1.0, 1.0);
 
         vec3 result = ambient + diffuse + specular;
-        fragColor = vec4(result, 1.0);
+        fragColor = vec4(result * lightIntensity, 1.0);
     }
 '''
 
@@ -90,6 +94,7 @@ vertex_shader_enemy = '''
     #version 330
     uniform mat4 Mvp;
     uniform float scale_factor;
+
 
     in vec3 in_position;
     in vec3 in_normal;
@@ -131,6 +136,9 @@ fragment_shader_enemy = '''
     #version 330
     uniform vec3 lightPos;
     uniform vec3 viewPos;
+    uniform float lightIntensity;
+
+
 
     in vec3 FragPos;
     in vec3 Normal;
@@ -156,7 +164,7 @@ fragment_shader_enemy = '''
         vec3 specular = specularStrength * spec * vec3(1.0, 1.0, 1.0);
 
         vec3 result = ambient + diffuse + specular;
-        fragColor = vec4(result, 1.0);
+        fragColor = vec4(result * lightIntensity, 1.0);
     }
 '''
 
@@ -179,9 +187,13 @@ vertex_shader_bullet = '''
     void main() {
         vec3 worldPos = in_origin + in_basis * (in_position * scale_factor);
 
-
-        // Flip the Y component to fix upside-down rendering
-        worldPos.y = -worldPos.y;
+        // Rotate the Y component to fix upside-down rendering
+        mat3 flip_matrix = mat3(
+            1.0, 0.0, 0.0,
+            0.0, cos(radians(180.0)), -sin(radians(180.0)),
+            0.0, sin(radians(180.0)), cos(radians(180.0))
+        );
+        worldPos = flip_matrix * worldPos;
 
         FragPos = vec3(Mvp * vec4(worldPos, 1.0));
         Normal = normalize(in_basis * in_normal);
@@ -196,6 +208,8 @@ fragment_shader_bullet = '''
     #version 330
     uniform vec3 lightPos;
     uniform vec3 viewPos;
+    uniform float lightIntensity;
+
 
     in vec3 FragPos;
     in vec3 Normal;
@@ -221,6 +235,6 @@ fragment_shader_bullet = '''
         vec3 specular = specularStrength * spec * vec3(1.0, 1.0, 1.0);
 
         vec3 result = ambient + diffuse + specular;
-        fragColor = vec4(result, 1.0);
+        fragColor = vec4(result * lightIntensity, 1.0);
     }
 '''

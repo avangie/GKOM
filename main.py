@@ -61,7 +61,6 @@ class Scene(SetupScene):
         self.death_sound.set_volume(0.3)
         self.shoot_sound.set_volume(0.3)
 
-
         # initialize SimpleGrid
         self.prog_grid = self.ctx.program(
             vertex_shader=vertex_shader_grid,
@@ -79,7 +78,7 @@ class Scene(SetupScene):
         )
 
         self.mvp_bullet = self.prog_bullet['Mvp']
-
+        self.prog_bullet['lightIntensity'] = 1.0
         obj = self.load_scene('bullet.obj')
 
 
@@ -98,14 +97,13 @@ class Scene(SetupScene):
         self.vao_bullet = self.vao_wrapper.instance(self.prog_bullet)
         self.bullet_list.append(self.vao_wrapper.instance(self.prog_bullet))
 
-
         # Initialize Ship
         self.ship_color = random_color()
         self.prog_ship = self.ctx.program(
             vertex_shader=vertex_shader_ship,
             fragment_shader=fragment_shader_ship
         )
-
+        self.prog_ship['lightIntensity'] = 1.0 
         self.mvp_ship = self.prog_ship['Mvp']
 
         obj = self.load_scene('spaceship_with_fire.obj')
@@ -127,7 +125,7 @@ class Scene(SetupScene):
             vertex_shader=vertex_shader_enemy,
             fragment_shader=fragment_shader_enemy
         )
-
+        self.prog_enemy['lightIntensity'] = 1.0
         self.mvp_enemy = self.prog_enemy['Mvp']
 
 
@@ -257,10 +255,53 @@ class Scene(SetupScene):
                 self.bullets_positions[i] = np.array(bullet_position, dtype=np.float32)
                 i += 1
 
+    def game_won(self):
+        print("Game WON!")
+        self.game_end = True
+        self.death_sound.play()
+        self.ship_position = np.array([1.3, 24, 18.5], dtype=np.float32)
+        camera_pos = (0, 20, 20.0)
+        self.light_enemy.value = camera_pos
+        self.light_ship.value = camera_pos
+        self.ship_color = random_color()
+        self.prog_ship = self.ctx.program(
+            vertex_shader=vertex_shader_game_over,
+            fragment_shader=fragment_shader_game_over
+        )
+
+        self.mvp_ship = self.prog_ship['Mvp']
+        self.light_ship = self.prog_ship['Light']
+
+        obj = self.load_scene('gwon.obj')
+        self.vbo_ship = self.ctx.buffer(struct.pack(
+            '15f',
+            *self.ship_color,
+            0.0, 0.0, 0.0,
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0,
+        ))
+        vao_wrapper = obj.root_nodes[0].mesh.vao
+        vao_wrapper.buffer(self.vbo_ship, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
+        self.vao_ship = vao_wrapper.instance(self.prog_ship)
+        self.vao_ship.render()
+
+
+
     def render(self, time, frame_time):
 
         self.ctx.clear(0.0, 0.0, 0.0)
         self.ctx.enable(moderngl.DEPTH_TEST)
+
+        # Set light intensity for ship
+        self.prog_ship['lightIntensity'].value = 1.   # Set the desired light intensity value
+
+        # Set light intensity for bullet
+        self.prog_bullet['lightIntensity'].value = 1.0
+
+        # Set light intensity for enemy
+        self.prog_enemy['lightIntensity'].value = 1.0
+
 
         # Render SimpleGrid
         proj = Matrix44.perspective_projection(45.0, self.aspect_ratio, 0.1, 1000.0)
@@ -274,18 +315,20 @@ class Scene(SetupScene):
 
         self.update_enemy_positions(frame_time)
 
+
         # Render Ship
         scale_factor = 0.1
         self.prog_ship['scale_factor'].value = scale_factor
         camera_pos = (20, 20, -20.0)
+        light_pos = (0, -20, -20)
 
         ship_model = Matrix44.from_translation(self.ship_position).astype('f4')
         ship_mvp = (proj * lookat * ship_model).astype('f4')
         self.mvp_ship.write(ship_mvp.tobytes())
 
             # Set Phong shading uniforms for ship
-        self.prog_ship['lightPos'].value = camera_pos
-        self.prog_ship['viewPos'].value = (0, 0, 0)
+        self.prog_ship['lightPos'].value = light_pos
+        self.prog_ship['viewPos'].value = camera_pos
 
 
         self.vao_ship.render()
@@ -302,29 +345,26 @@ class Scene(SetupScene):
             bullet_mvp = (proj * lookat * bullet_model).astype('f4')
             self.mvp_bullet.write(bullet_mvp.tobytes())
             # Set Phong shading uniforms for bullet
-            self.prog_bullet['lightPos'].value = camera_pos
-            self.prog_bullet['viewPos'].value = (0, 0, 0)
+            self.prog_bullet['lightPos'].value = light_pos
+            self.prog_bullet['viewPos'].value = camera_pos
 
             self.bullet_list[i].render()
-
-
-
 
 
         # Render Enemy
         for i in reversed(range(len(self.enemies_list))):
             scale_factor = 0.12
             self.prog_enemy['scale_factor'].value = scale_factor
-            camera_pos = (0, 10, 20)
+            
 
             enemy_model = Matrix44.from_translation(self.enemies_position_list[i]).astype('f4')
             enemy_mvp = (proj * lookat * enemy_model).astype('f4')
             self.mvp_enemy.write(enemy_mvp.tobytes())
-            camera_pos = (0, 10, 20.0)
+
 
             # Set Phong shading uniforms for enemy
-            self.prog_enemy['lightPos'].value = camera_pos
-            self.prog_enemy['viewPos'].value = (0, 0, 0)
+            self.prog_enemy['lightPos'].value = light_pos
+            self.prog_enemy['viewPos'].value = camera_pos
 
             self.enemies_list[i].render()
 
