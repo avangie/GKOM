@@ -273,7 +273,7 @@ vertex_shader_game_over='''
     void main() {
         // Transform position using origin, basis, and scale_factor
         v_vert = in_origin + in_basis * (in_position * scale_factor);
-        
+
         // Rotate the position 180 degrees around the x-axis to turn it upside down
         mat3 flip_matrix = mat3(
             1.0, 0.0, 0.0,
@@ -292,10 +292,10 @@ vertex_shader_game_over='''
 
         // Transform normal using basis
         v_norm = in_basis * in_normal;
-        
+
         // Pass color through
         v_color = in_color;
-        
+
         gl_Position = Mvp * vec4(v_vert, 1.0);
     }
 '''
@@ -310,5 +310,33 @@ fragment_shader_game_over='''
     void main() {
         float lum = clamp(dot(normalize(Light - v_vert), normalize(v_norm)), 0.0, 1.0) * 0.8 + 0.2;
         fragColor = vec4(v_color * lum, 1.0);
+    }
+'''
+vertex_shader_particle='''
+    #version 330
+    in vec2 in_vert;
+    void main() {
+        gl_Position = vec4(in_vert, 0.0, 1.0);
+    }
+'''
+fragment_shader_particle='''
+    #version 330
+    out vec4 f_color;
+    void main() {
+        f_color = vec4(1,0,0, 1.0);
+    }
+'''
+
+vertex_shader_particle_transform='''
+    #version 330
+    uniform vec2 Acc;
+    in vec2 in_pos;
+    in vec2 in_prev;
+    out vec2 out_pos;
+    out vec2 out_prev;
+    void main() {
+        vec2 velocity = in_pos - in_prev;
+        out_pos = in_pos + velocity + Acc;
+        out_prev = in_pos;
     }
 '''

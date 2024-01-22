@@ -49,10 +49,10 @@ class Scene(SetupScene):
         pygame.mixer.init()
         mixer.init()
         background_music_path = os.path.join(BASE_DIR, 'audio', 'background.mp3')
-        
+
         pygame.mixer.music.load(background_music_path)
-        pygame.mixer.music.set_volume(0.1)  
-        pygame.mixer.music.play(-1) 
+        pygame.mixer.music.set_volume(0.1)
+        pygame.mixer.music.play(-1)
 
         self.shoot_sound_path = background_music_path = os.path.join(BASE_DIR, 'audio', 'bullet.wav')
         self.death_sound_path = background_music_path = os.path.join(BASE_DIR, 'audio', 'death.wav')
@@ -94,12 +94,12 @@ class Scene(SetupScene):
         ))
         self.vao_wrapper = obj.root_nodes[0].mesh.vao
         self.vao_wrapper.buffer(self.vbo_bullet, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
-       
-    
+
+
         self.vao_bullet = self.vao_wrapper.instance(self.prog_bullet)
         self.bullet_list.append(self.vao_wrapper.instance(self.prog_bullet))
 
-        # initialize gwon 
+        # initialize gwon
         self.gwon_color = random_color()
         self.prog_gwon = self.ctx.program(
             vertex_shader=vertex_shader_game_over,
@@ -123,7 +123,7 @@ class Scene(SetupScene):
         self.vao_gwon = vao_wrapper.instance(self.prog_gwon)
 
 
-        # initialize gover 
+        # initialize gover
         self.gover_color = random_color()
         self.prog_gover = self.ctx.program(
             vertex_shader=vertex_shader_game_over,
@@ -155,7 +155,7 @@ class Scene(SetupScene):
             vertex_shader=vertex_shader_ship,
             fragment_shader=fragment_shader_ship
         )
-        self.prog_ship['lightIntensity'] = 1.0 
+        self.prog_ship['lightIntensity'] = 1.0
         self.mvp_ship = self.prog_ship['Mvp']
 
         obj = self.load_scene('spaceship_with_fire.obj')
@@ -170,7 +170,7 @@ class Scene(SetupScene):
         vao_wrapper = obj.root_nodes[0].mesh.vao
         vao_wrapper.buffer(self.vbo_ship, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
         self.vao_ship = vao_wrapper.instance(self.prog_ship)
-        
+
 
         # initialize enemies
         self.prog_enemy = self.ctx.program(
@@ -182,7 +182,7 @@ class Scene(SetupScene):
 
 
         obj = self.load_scene('enemy.obj')
-        for i in range(2):
+        for i in range(36):
             self.enemy_color = random_color()
             self.vbo_enemy = self.ctx.buffer(struct.pack(
                 '15f',
@@ -195,11 +195,50 @@ class Scene(SetupScene):
             vao_wrapper = obj.root_nodes[0].mesh.vao
             vao_wrapper.buffer(self.vbo_enemy, '3f 3f 9f/i', ['in_color', 'in_origin', 'in_basis'])
             self.enemies_list.append(vao_wrapper.instance(self.prog_enemy))
-        
+
         # initialize enemy movement variables
         self.enemy_current_step = 0
         self.enemy_time_since_last_step = 0
         self.enemy_step_interval = 1.0
+
+        #initialize particles
+        self.prog_particles = self.ctx.program(
+            vertex_shader=vertex_shader_particle,
+            fragment_shader=fragment_shader_particle
+        )
+        self.transform_particles = self.ctx.program(
+            vertex_shader = vertex_shader_particle_transform,
+            varyings=['out_pos', 'out_prev']
+        )
+
+        self.acc_particles = self.transform_particles['Acc']
+        self.acc_particles.value = (0.0, -0.0001)
+
+        self.vbo1_particles = self.ctx.buffer(b''.join(self.particle() for i in range(100)))
+        self.vbo2_particles = self.ctx.buffer(reserve=self.vbo1_particles.size)
+
+        self.vao1_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo1_particles, 'in_pos', 'in_prev')
+        self.vao2_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo2_particles, 'in_pos', 'in_prev')
+
+        self.render_vao = self.ctx.vertex_array(self.prog_particles, [
+            (self.vbo1_particles, '2f 2x4', 'in_vert'),
+        ])
+
+        self.idx = 0
+
+    def render_particles(self):
+        #self.ctx.clear(1.0, 1.0, 1.0)
+        self.ctx.point_size = 4.0
+        self.render_vao.render(moderngl.POINTS, 100)
+        self.vao1_particles.transform(self.vbo2_particles, moderngl.POINTS, 100)
+        self.ctx.copy_buffer(self.vbo1_particles, self.vbo2_particles)
+
+
+    def particle(self):
+        a = np.random.uniform(0.0, np.pi * 2.0)
+        r = np.random.uniform(0.0, 0.004)
+        return np.array([0., 0., np.cos(a) * r, np.sin(a) * r]).astype('f4')
+
 
     def update_enemy_positions(self, frame_time):
         self.enemy_time_since_last_step += frame_time
@@ -222,11 +261,11 @@ class Scene(SetupScene):
                 for i in range(len(self.enemies_list)):
                     self.enemies_position_list[i][2] -= 2.0
 
-            # three steps to the left 
+            # three steps to the left
             elif 5 <= self.enemy_current_step <= 7:
                 for i in range(len(self.enemies_list)):
                     self.enemies_position_list[i][0] += 2.0
-            
+
             # one step forward
             elif self.enemy_current_step == 8:
                 for i in range(len(self.enemies_list)):
@@ -285,7 +324,7 @@ class Scene(SetupScene):
                         print("CANNOT LEAVE THE BOARD ")
                 elif key == self.wnd.keys.SPACE:
                     print("BULLET SHOT")
-                    
+
                     self.shoot_sound.play()
                     bullet_position = self.ship_position.copy()
                     bullet_position[1] -= 2
@@ -311,7 +350,6 @@ class Scene(SetupScene):
 
 
     def render(self, time, frame_time):
-
         self.ctx.clear(0.0, 0.0, 0.0)
         self.ctx.enable(moderngl.DEPTH_TEST)
         if self.game_end:
@@ -330,6 +368,11 @@ class Scene(SetupScene):
         self.prog_enemy['lightIntensity'].value = 1.0
 
 
+        self.ctx.point_size = 4.0
+        self.render_vao.render(moderngl.POINTS, 100)
+        self.vao1_particles.transform(self.vbo2_particles, moderngl.POINTS, 100)
+        self.ctx.copy_buffer(self.vbo1_particles, self.vbo2_particles)
+
         # Render SimpleGrid
         proj = Matrix44.perspective_projection(45.0, self.aspect_ratio, 0.1, 1000.0)
         lookat = Matrix44.look_at(
@@ -346,7 +389,7 @@ class Scene(SetupScene):
         # Render Ship
         scale_factor = 0.1
         self.prog_ship['scale_factor'].value = scale_factor
-        camera_pos =(-100, 10, -20.0) 
+        camera_pos =(-100, 10, -20.0)
         light_pos = (0, 0, -20.0)
 
         ship_model = Matrix44.from_translation(self.ship_position).astype('f4')
@@ -395,7 +438,7 @@ class Scene(SetupScene):
 
             # Check collision with the ship
             if self.vao_ship != None:
-            
+
                 ship_box = [self.ship_position[0] - 1, self.ship_position[0] + 1,
                             self.ship_position[1] - 1, self.ship_position[1] + 1,
                             self.ship_position[2] - 1, self.ship_position[2] + 1]
@@ -413,6 +456,35 @@ class Scene(SetupScene):
                         self.death_sound.play()
                         self.points += 10
                         print(f"Points: {self.points}")
+
+
+                        #initialize particles
+                        self.prog_particles = self.ctx.program(
+                            vertex_shader=vertex_shader_particle,
+                            fragment_shader=fragment_shader_particle
+                        )
+                        self.transform_particles = self.ctx.program(
+                            vertex_shader = vertex_shader_particle_transform,
+                            varyings=['out_pos', 'out_prev']
+                        )
+
+                        self.acc_particles = self.transform_particles['Acc']
+                        self.acc_particles.value = (0.0, -0.0001)
+
+                        self.vbo1_particles = self.ctx.buffer(b''.join(self.particle() for i in range(100)))
+                        self.vbo2_particles = self.ctx.buffer(reserve=self.vbo1_particles.size)
+
+                        self.vao1_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo1_particles, 'in_pos', 'in_prev')
+                        self.vao2_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo2_particles, 'in_pos', 'in_prev')
+
+                        self.render_vao = self.ctx.vertex_array(self.prog_particles, [
+                            (self.vbo1_particles, '2f 2x4', 'in_vert'),
+                        ])
+
+                        self.idx = 0
+
+
+
                         del self.enemies_position_list[i]
                         del self.enemies_list[i]
                         if len(self.enemies_list) == 0:
@@ -426,7 +498,7 @@ class Scene(SetupScene):
     def game_over(self):
         print("Game Over: Ship collided with an enemy!")
         self.vao_ship = None
-        
+
         proj = Matrix44.perspective_projection(45.0, self.aspect_ratio, 0.1, 1000.0)
         lookat = Matrix44.look_at(
             (0.0, 30.0, 30.0),
@@ -437,16 +509,16 @@ class Scene(SetupScene):
         gover_model = Matrix44.from_translation((0.0, 13, 0.0)).astype('f4')
         gover_mvp = (proj * lookat * gover_model).astype('f4')
         self.mvp_gover.write(gover_mvp.tobytes())
-        
+
         self.prog_gover['scale_factor'] = 0.2
         self.prog_gover['Light'] = (0.0, 13, 0.0)
-        
+
         self.vao_gover.render()
 
     def game_won(self):
         print("Game WON!")
         self.vao_ship = None
-        
+
         proj = Matrix44.perspective_projection(45.0, self.aspect_ratio, 0.1, 1000.0)
         lookat = Matrix44.look_at(
             (0.0, 30.0, 30.0),
@@ -457,13 +529,13 @@ class Scene(SetupScene):
         gwon_model = Matrix44.from_translation((0.0, 13, 0.0)).astype('f4')
         gwon_mvp = (proj * lookat * gwon_model).astype('f4')
         self.mvp_gwon.write(gwon_mvp.tobytes())
-        
+
         self.prog_gwon['scale_factor'] = 0.2
         self.prog_gwon['Light'] = (0.0, 13, 0.0)
-        
+
         self.vao_gwon.render()
 
-    
+
 def check_collision(box1, box2):
 # box: [min_x, max_x, min_y, max_y, min_z, max_z]
     return not (box1[1] < box2[0] or
