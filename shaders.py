@@ -13,8 +13,7 @@ fragment_shader_grid='''
 
     void main() {
         vec2 st = gl_FragCoord.xy / u_resolution;
-        float stars = step(0.98, fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453));
-        fragColor = vec4(vec3(stars), 1.0);
+        fragColor = vec4(0.8,0.8,0.8, 1.0);
     }
 '''
 

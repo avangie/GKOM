@@ -30,7 +30,7 @@ class Scene(SetupScene):
         super().__init__(**kwargs)
         self.ship_position = np.array([0.0, 13, 0.0], dtype=np.float32)
 
-
+        self.start_render_particles = False
         self.bullet_list = []
         self.bullets_positions = []
 
@@ -201,38 +201,6 @@ class Scene(SetupScene):
         self.enemy_time_since_last_step = 0
         self.enemy_step_interval = 1.0
 
-        #initialize particles
-        self.prog_particles = self.ctx.program(
-            vertex_shader=vertex_shader_particle,
-            fragment_shader=fragment_shader_particle
-        )
-        self.transform_particles = self.ctx.program(
-            vertex_shader = vertex_shader_particle_transform_test,
-            varyings=['out_pos', 'out_vel']
-        )
-
-        self.acc_particles = self.transform_particles['Acc']
-        self.acc_particles.value = (0.0, -0.0001)
-
-        self.vbo1_particles = self.ctx.buffer(b''.join(self.particle(0,0) for i in range(100)))
-        self.vbo2_particles = self.ctx.buffer(b''.join(self.particle(0,0) for i in range(100)))
-
-        self.vao1_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo1_particles, 'in_pos', 'in_vel')
-        self.vao2_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo2_particles, 'in_pos', 'in_vel')
-
-        self.render_vao = self.ctx.vertex_array(self.prog_particles, [
-            (self.vbo1_particles, '2f 2x4', 'in_vert'),
-        ])
-
-        self.idx = 0
-
-    def render_particles(self):
-        #self.ctx.clear(1.0, 1.0, 1.0)
-        self.ctx.point_size = 4.0
-        self.render_vao.render(moderngl.POINTS, 100)
-        self.vao1_particles.transform(self.vbo2_particles, moderngl.POINTS, 100)
-        self.ctx.copy_buffer(self.vbo1_particles, self.vbo2_particles)
-
 
     def particle(self, x, y):
         a = np.random.uniform(0.0, np.pi * 2.0)
@@ -368,10 +336,11 @@ class Scene(SetupScene):
         self.prog_enemy['lightIntensity'].value = 1.0
 
 
-        self.ctx.point_size = 4.0
-        self.render_vao.render(moderngl.POINTS, 100)
-        self.vao1_particles.transform(self.vbo2_particles, moderngl.POINTS, 100)
-        self.ctx.copy_buffer(self.vbo1_particles, self.vbo2_particles)
+        if(self.start_render_particles):
+            self.ctx.point_size = 4.0
+            self.render_vao.render(moderngl.POINTS, 100)
+            self.vao1_particles.transform(self.vbo2_particles, moderngl.POINTS, 100)
+            self.ctx.copy_buffer(self.vbo1_particles, self.vbo2_particles)
 
         # Render SimpleGrid
         proj = Matrix44.perspective_projection(45.0, self.aspect_ratio, 0.1, 1000.0)
@@ -457,8 +426,8 @@ class Scene(SetupScene):
                         self.points += 10
                         print(f"Points: {self.points}")
 
-
                         #initialize particles
+                        self.start_render_particles = True
                         self.prog_particles = self.ctx.program(
                             vertex_shader=vertex_shader_particle,
                             fragment_shader=fragment_shader_particle
@@ -470,7 +439,8 @@ class Scene(SetupScene):
 
                         self.acc_particles = self.transform_particles['Acc']
                         self.acc_particles.value = (0.0, -0.0001)
-                        x,y = self.enemies_position_list[i][0]/30 ,self.enemies_position_list[i][2]/30 + 13/30
+                        z = self.enemies_position_list[i][1]+14
+                        x, y = self.enemies_position_list[i][0]/30 + 1/30,self.enemies_position_list[i][2]/30 + 14/30 -z/30
                         self.vbo1_particles = self.ctx.buffer(b''.join(self.particle(-x,y) for _ in range(100)))
                         self.vbo2_particles = self.ctx.buffer(b''.join(self.particle(0.1,0.1) for _ in range(100)))
 
@@ -506,12 +476,12 @@ class Scene(SetupScene):
             (0.0, 0.0, 1.0),
         )
 
-        gover_model = Matrix44.from_translation((0.0, 13, 0.0)).astype('f4')
+        gover_model = Matrix44.from_translation((1.5, 13, 0.0)).astype('f4')
         gover_mvp = (proj * lookat * gover_model).astype('f4')
         self.mvp_gover.write(gover_mvp.tobytes())
 
         self.prog_gover['scale_factor'] = 0.2
-        self.prog_gover['Light'] = (0.0, 13, 0.0)
+        self.prog_gover['Light'] = (0.0, -18, 30.0)
 
         self.vao_gover.render()
 
@@ -526,12 +496,12 @@ class Scene(SetupScene):
             (0.0, 0.0, 1.0),
         )
 
-        gwon_model = Matrix44.from_translation((0.0, 13, 0.0)).astype('f4')
+        gwon_model = Matrix44.from_translation((1.5, 13, 0.0)).astype('f4')
         gwon_mvp = (proj * lookat * gwon_model).astype('f4')
         self.mvp_gwon.write(gwon_mvp.tobytes())
 
         self.prog_gwon['scale_factor'] = 0.2
-        self.prog_gwon['Light'] = (0.0, 13, 0.0)
+        self.prog_gwon['Light'] = (0.0, -18, 30.0)
 
         self.vao_gwon.render()
 
