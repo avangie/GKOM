@@ -207,18 +207,18 @@ class Scene(SetupScene):
             fragment_shader=fragment_shader_particle
         )
         self.transform_particles = self.ctx.program(
-            vertex_shader = vertex_shader_particle_transform,
-            varyings=['out_pos', 'out_prev']
+            vertex_shader = vertex_shader_particle_transform_test,
+            varyings=['out_pos', 'out_vel']
         )
 
         self.acc_particles = self.transform_particles['Acc']
         self.acc_particles.value = (0.0, -0.0001)
 
-        self.vbo1_particles = self.ctx.buffer(b''.join(self.particle() for i in range(100)))
-        self.vbo2_particles = self.ctx.buffer(reserve=self.vbo1_particles.size)
+        self.vbo1_particles = self.ctx.buffer(b''.join(self.particle(0,0) for i in range(100)))
+        self.vbo2_particles = self.ctx.buffer(b''.join(self.particle(0,0) for i in range(100)))
 
-        self.vao1_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo1_particles, 'in_pos', 'in_prev')
-        self.vao2_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo2_particles, 'in_pos', 'in_prev')
+        self.vao1_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo1_particles, 'in_pos', 'in_vel')
+        self.vao2_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo2_particles, 'in_pos', 'in_vel')
 
         self.render_vao = self.ctx.vertex_array(self.prog_particles, [
             (self.vbo1_particles, '2f 2x4', 'in_vert'),
@@ -234,10 +234,10 @@ class Scene(SetupScene):
         self.ctx.copy_buffer(self.vbo1_particles, self.vbo2_particles)
 
 
-    def particle(self):
+    def particle(self, x, y):
         a = np.random.uniform(0.0, np.pi * 2.0)
         r = np.random.uniform(0.0, 0.004)
-        return np.array([0., 0., np.cos(a) * r, np.sin(a) * r]).astype('f4')
+        return np.array([x, y, np.cos(a) * r, np.sin(a) * r]).astype('f4')
 
 
     def update_enemy_positions(self, frame_time):
@@ -464,18 +464,18 @@ class Scene(SetupScene):
                             fragment_shader=fragment_shader_particle
                         )
                         self.transform_particles = self.ctx.program(
-                            vertex_shader = vertex_shader_particle_transform,
-                            varyings=['out_pos', 'out_prev']
+                            vertex_shader = vertex_shader_particle_transform_test,
+                            varyings=['out_pos', 'out_vel']
                         )
 
                         self.acc_particles = self.transform_particles['Acc']
                         self.acc_particles.value = (0.0, -0.0001)
+                        x,y = self.enemies_position_list[i][0]/30 ,self.enemies_position_list[i][2]/30 + 13/30
+                        self.vbo1_particles = self.ctx.buffer(b''.join(self.particle(-x,y) for _ in range(100)))
+                        self.vbo2_particles = self.ctx.buffer(b''.join(self.particle(0.1,0.1) for _ in range(100)))
 
-                        self.vbo1_particles = self.ctx.buffer(b''.join(self.particle() for i in range(100)))
-                        self.vbo2_particles = self.ctx.buffer(reserve=self.vbo1_particles.size)
-
-                        self.vao1_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo1_particles, 'in_pos', 'in_prev')
-                        self.vao2_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo2_particles, 'in_pos', 'in_prev')
+                        self.vao1_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo1_particles, 'in_pos', 'in_vel')
+                        self.vao2_particles = self.ctx.simple_vertex_array(self.transform_particles, self.vbo2_particles, 'in_pos', 'in_vel')
 
                         self.render_vao = self.ctx.vertex_array(self.prog_particles, [
                             (self.vbo1_particles, '2f 2x4', 'in_vert'),
@@ -484,7 +484,7 @@ class Scene(SetupScene):
                         self.idx = 0
 
 
-
+                        print(self.enemies_position_list[i])
                         del self.enemies_position_list[i]
                         del self.enemies_list[i]
                         if len(self.enemies_list) == 0:

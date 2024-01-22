@@ -340,3 +340,16 @@ vertex_shader_particle_transform='''
         out_prev = in_pos;
     }
 '''
+vertex_shader_particle_transform_test='''
+    # version 330
+    uniform vec2 Acc;
+    in vec2 in_pos;
+    in vec2 in_vel;
+    out vec2 out_pos;
+    out vec2 out_vel;
+    void main() {
+        vec2 velocity = in_vel + Acc;
+        out_pos = in_pos + velocity;
+        out_vel = in_vel;
+    }
+'''
